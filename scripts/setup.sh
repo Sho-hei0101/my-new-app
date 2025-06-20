@@ -5,30 +5,34 @@ set -euo pipefail
 [[ -z "${VERCEL_TOKEN:-}" ]] && { echo "❌ VERCEL_TOKEN が設定されていません"; exit 1; }
 [[ -z "${GH_TOKEN:-}"    ]] && { echo "❌ GH_TOKEN が設定されていません";    exit 1; }
 
+### プロジェクト名とチームスラッグ
 PROJECT_NAME=$(basename "$PWD")          # カレントディレクトリ名をプロジェクト名に
 TEAM="shos-projects-04e8fb17"            # Vercel チームスラッグ
 
 echo "📦 Setup for \`$PROJECT_NAME\` …"
 
-### 1. Vercel プロジェクトを確保（なければ作る）
-if ! vercel projects ls --token "$VERCEL_TOKEN" \
+### 1. Vercel プロジェクトを確保（なければ作成）
+if ! vercel projects ls --token "$VERCEL_TOKEN" 2>/dev/null \
      | grep -q "^$PROJECT_NAME\s"; then
   vercel projects add "$PROJECT_NAME" \
-    --team  "$TEAM" \
     --token "$VERCEL_TOKEN" \
-    --confirm
+    --yes \
+    --scope "$TEAM"
 fi
 
 ### 2. Deploy Hook を自動作成（初回のみ）
 HOOK_URL=$(vercel deploy-hooks ls "$PROJECT_NAME" \
-    --team  "$TEAM" \
     --token "$VERCEL_TOKEN" \
+    --yes \
+    --scope "$TEAM" \
+  2>/dev/null \
   | jq -r '.[0].url')
 
 if [[ -z "$HOOK_URL" || "$HOOK_URL" == "null" ]]; then
   HOOK_URL=$(vercel deploy-hooks add "$PROJECT_NAME" github-trigger main \
-      --team  "$TEAM" \
       --token "$VERCEL_TOKEN" \
+      --yes \
+      --scope "$TEAM" \
     | jq -r '.url')
   echo "🔗 Deploy Hook created: $HOOK_URL"
 fi
@@ -41,7 +45,7 @@ REPO=$(git config --get remote.origin.url \
 if ! curl -s -H "Authorization: token $GH_TOKEN" \
      "$GH_API/repos/$REPO/hooks" \
    | jq -e --arg url "$HOOK_URL" \
-       '.[] | .config.url == $url' \
+       '.[] | select(.config.url == $url)' \
      >/dev/null; then
   curl -s -X POST \
     -H "Authorization: token $GH_TOKEN" \
@@ -57,12 +61,13 @@ if ! curl -s -H "Authorization: token $GH_TOKEN" \
     }' \
     "$GH_API/repos/$REPO/hooks" >/dev/null
   echo "✅ GitHub Webhook added"
+else
+  echo "✅ GitHub Webhook already exists"
 fi
 
 ### 4. 初回デプロイ
-# 「.」を指定して確実に１パスだけ渡す
 vercel deploy --prod \
   --token "$VERCEL_TOKEN" \
+  --yes \
   --scope "$TEAM"
-
 echo "🎉 Setup finished! https://$PROJECT_NAME.vercel.app"
