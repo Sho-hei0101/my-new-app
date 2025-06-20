@@ -61,9 +61,8 @@ fi
 
 ### 4. 初回デプロイ
 # 「.」を指定して確実に１パスだけ渡す
-vercel deploy . --prod \
-  --team  "$TEAM" \
+vercel deploy --prod \
   --token "$VERCEL_TOKEN" \
-  --confirm
+  --scope "$TEAM"
 
 echo "🎉 Setup finished! https://$PROJECT_NAME.vercel.app"
