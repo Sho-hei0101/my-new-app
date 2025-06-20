@@ -42,11 +42,9 @@ fi
 
 ### 3. GitHub Webhook を自動登録（初回のみ）
 GH_API="https://api.github.com"
-# リモートURLからオーナー/リポジトリ名を抽出
 REPO=$(git config --get remote.origin.url \
   | sed -E 's|.*[:/](.+)\.git|\1|')
 
-# 既存 Webhook をチェック
 EXISTS=$(curl -s -H "Authorization: token $GH_TOKEN" \
     "$GH_API/repos/$REPO/hooks" \
   | jq '.[] | select(.config.url=="'"$HOOK_URL"'")')
@@ -69,5 +67,5 @@ else
 fi
 
 ### 4. 初回デプロイ
-vercel --prod --token="$VERCEL_TOKEN"
+vercel deploy . --prod --yes --token="$VERCEL_TOKEN"
 echo "🎉 Setup finished! https://$PROJECT_NAME.$TEAM.vercel.app"
