@@ -67,5 +67,7 @@ else
 fi
 
 ### 4. 初回デプロイ
-vercel deploy . --prod --yes --token="$VERCEL_TOKEN"
-echo "🎉 Setup finished! https://$PROJECT_NAME.$TEAM.vercel.app"
+ ### 4. 初回デプロイ
+- vercel deploy . --prod --yes --token="$VERCEL_TOKEN"
++ vercel deploy --prod --confirm --token="$VERCEL_TOKEN"
+ echo "🎉 Setup finished! https://$PROJECT_NAME.$TEAM.vercel.app"
